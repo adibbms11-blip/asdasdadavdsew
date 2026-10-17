@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <style>
+    :root { --ink:#28251f; --muted:#817c72; --paper:#fbfaf8; --line:#e8e4dc; --accent:#655c4c; --accent-dark:#4d4538; --selected:#d9f1f4; --selected-line:#3e9aaa; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:var(--paper); }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    .hidden { display:none!important; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px clamp(16px,4vw,48px); border-bottom:1px solid var(--line); background:#fff; }
+    .brand { font-size:14px; font-weight:800; letter-spacing:.16em; }
+    .brand small { display:block; margin-top:5px; color:var(--muted); font-size:10px; letter-spacing:.22em; font-weight:500; }
+    .page { width:min(1400px,100%); margin:0 auto; padding:26px clamp(12px,3vw,42px) 110px; }
+    .page-title { margin:0; font-size:clamp(22px,3vw,34px); letter-spacing:-.04em; }
+    .sub { margin:8px 0 0; color:var(--muted); font-size:14px; line-height:1.5; }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin:24px 0 18px; }
+    .counter { font-size:14px; color:var(--muted); }
+    .counter strong { color:var(--ink); }
+    .btn { border:0; border-radius:999px; background:var(--accent); color:#fff; padding:13px 22px; font-size:13px; font-weight:700; transition:.2s; }
+    .btn:hover { background:var(--accent-dark); }
+    .btn:disabled { opacity:.4; cursor:not-allowed; }
+    .btn.secondary { background:#eeeae3; color:var(--ink); }
+    .btn.danger { background:#8e4037; }
+    .gallery { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:12px; }
+    .photo { position:relative; padding:0; border:0; background:#e9e5de; border-radius:13px; overflow:hidden; aspect-ratio:3/4; min-width:0; outline:2px solid transparent; outline-offset:2px; }
+    .photo img { display:block; width:100%; height:100%; object-fit:cover; transition:transform .25s; }
+    .photo:hover img { transform:scale(1.035); }
+    .photo .select-dot { position:absolute; right:9px; bottom:9px; width:23px; height:23px; display:grid; place-items:center; border-radius:50%; border:2px solid #b6e8ef; background:#fff; color:#215c67; box-shadow:0 1px 5px #0002; font-size:13px; font-weight:bold; }
+    .photo.selected { outline-color:var(--selected-line); }
+    .photo.selected .select-dot { background:var(--selected-line); color:#fff; border-color:#fff; }
+    .photo .code-label { position:absolute; left:0; right:0; bottom:0; padding:24px 8px 8px; text-align:left; color:#fff; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:linear-gradient(transparent,#000a); opacity:0; transition:.2s; }
+    .photo:hover .code-label,.photo.selected .code-label { opacity:1; }
+    .empty { text-align:center; padding:50px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:18px; }
+    .sticky-submit { position:fixed; z-index:10; right:clamp(12px,5vw,60px); bottom:18px; display:flex; align-items:center; gap:12px; padding:8px; border:1px solid #e8e4dc; border-radius:999px; background:#ffffffeb; box-shadow:0 6px 30px #0001; backdrop-filter:blur(12px); }
+    .sticky-submit .counter { padding-left:12px; }
+    .notice { padding:13px 15px; border-radius:12px; margin:18px 0; background:#f0eee8; color:#625d53; font-size:13px; line-height:1.5; }
+    .notice.success { background:#e6f4e9; color:#23633a; }
+    .notice.error { background:#f9e8e5; color:#8e4037; }
+    .modal { position:fixed; z-index:50; inset:0; background:#0b0b0beF; display:flex; align-items:center; justify-content:center; padding:18px; }
+    .modal-inner { width:min(1000px,100%); height:min(90dvh,900px); display:flex; flex-direction:column; color:white; }
+    .modal-head { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:0 0 12px; }
+    .modal-code { color:#ddd; font-size:13px; }
+    .modal-stage { flex:1; min-height:0; display:flex; justify-content:center; align-items:center; }
+    .modal-stage img { max-width:100%; max-height:100%; object-fit:contain; border-radius:5px; }
+    .modal-foot { display:flex; justify-content:center; align-items:center; gap:14px; padding-top:12px; }
+    .icon-btn { width:42px; height:42px; border:1px solid #ffffff50; color:#fff; background:#ffffff18; border-radius:50%; font-size:20px; }
+    .modal .btn { background:#fff; color:#24211d; }
+    .admin-wrap { width:min(1000px,100%); margin:0 auto; }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:18px; padding:clamp(16px,3vw,26px); margin:18px 0; }
+    .panel h2 { font-size:17px; margin:0 0 18px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; }
+    .field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+    .field.full { grid-column:1/-1; }
+    .field label { font-size:12px; font-weight:700; color:#5e594f; }
+    .field input { width:100%; border:1px solid #ddd7cd; border-radius:10px; padding:13px 12px; background:#fff; outline-color:var(--selected-line); }
+    .field input[type=number] { max-width:220px; }
+    .form-actions { display:flex; gap:10px; align-items:center; margin-top:18px; flex-wrap:wrap; }
+    .project-list { display:flex; flex-direction:column; gap:10px; }
+    .project { border:1px solid var(--line); border-radius:13px; padding:15px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .project-main { min-width:0; }
+    .project-name { font-weight:800; overflow-wrap:anywhere; }
+    .project-meta { color:var(--muted); font-size:12px; margin-top:5px; line-height:1.5; }
+    .project-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .small-btn { border:1px solid var(--line); border-radius:999px; background:white; padding:9px 12px; font-size:12px; font-weight:700; color:var(--ink); }
+    .small-btn:hover { background:#f4f1eb; }
+    .result-box { background:#f4f1eb; border-radius:12px; padding:14px; margin-top:15px; overflow-wrap:anywhere; font-size:13px; line-height:1.7; }
+    .result-box a { color:#245d83; }
+    .code-list { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+    .code-chip { padding:7px 9px; border-radius:7px; background:#f0eee8; font-family:monospace; font-size:12px; }
+    .footnote { color:var(--muted); font-size:12px; line-height:1.6; }
+    .loading { opacity:.6; pointer-events:none; }
+    @media(max-width:1100px) { .gallery { grid-template-columns:repeat(6,minmax(0,1fr)); gap:10px; } }
+    @media(max-width:760px) {
+      .gallery { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
+      .photo { border-radius:9px; }
+      .photo .select-dot { width:20px; height:20px; right:5px; bottom:5px; }
+      .photo .code-label { display:none; }
+      .page { padding-top:20px; }
+      .form-grid { grid-template-columns:1fr; }
+      .field.full { grid-column:auto; }
+      .project { align-items:flex-start; flex-direction:column; }
+      .project-actions { justify-content:flex-start; }
+      .sticky-submit { left:10px; right:10px; bottom:10px; justify-content:space-between; }
+      .sticky-submit .btn { padding:12px 17px; }
+    }
+    @media(max-width:390px) { .gallery { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">INHISTORIA <small>GALLERY & PHOTO SELECTION</small></div>
+    <div id="headerRight"></div>
+  </header>
+  <main id="adminPage" class="page hidden">
+    <div class="admin-wrap">
+      <h1 class="page-title">Dashboard Gallery</h1>
+      <p class="sub">Buat galeri, bagikan link ke klien, lalu pantau hasil seleksi foto.</p>
+      <div id="adminNotice"></div>
+      <section id="loginPanel" class="panel">
+        <h2>Masuk sebagai admin</h2>
+        <div class="field">
+          <label for="adminKey">ADMIN KEY</label>
+          <input id="adminKey" type="password" autocomplete="current-password" placeholder="Masukkan kunci admin">
+        </div>
+        <div class="form-actions"><button class="btn" onclick="loginAdmin()">Buka dashboard</button></div>
+        <p class="footnote">Kunci admin dibuat saat menjalankan initializeGallery() di editor Apps Script. Jangan bagikan kunci ini kepada klien.</p>
+      </section>
+      <div id="adminWorkspace" class="hidden">
+        <section class="panel">
+          <h2>Buat project gallery</h2>
+          <form id="createForm" onsubmit="createProject(event)">
+            <div class="form-grid">
+              <div class="field full"><label for="clientName">Nama klien / proyek</label><input id="clientName" required maxlength="120" placeholder="Contoh: DIANA - UIN"></div>
+              <div class="field full"><label for="folderUrl">Link folder Google Drive</label><input id="folderUrl" required placeholder="https://drive.google.com/drive/folders/..."></div>
+              <div class="field"><label for="limit">Batas foto pilihan</label><input id="limit" type="number" min="1" max="500" value="15" required></div>
+            </div>
+            <div class="form-actions"><button id="createBtn" class="btn" type="submit">+ Buat project gallery</button></div>
+          </form>
+          <div id="createResult"></div>
+          <p class="footnote">Foto yang dibaca adalah file gambar langsung di dalam folder tersebut, bukan di subfolder. Kode foto mengikuti nama file tanpa ekstensi.</p>
+        </section>
+        <section class="panel">
+          <h2>Daftar project</h2>
+          <div class="form-actions" style="margin-top:-5px;margin-bottom:16px"><button class="small-btn" onclick="refreshProjects()">↻ Perbarui daftar</button><button class="small-btn" onclick="logoutAdmin()">Keluar</button></div>
+          <div id="projectList" class="project-list"><div class="empty">Masuk untuk melihat proyek.</div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <main id="clientPage" class="page hidden">
+    <div id="clientHeader">
+      <h1 id="clientNameTitle" class="page-title">Memuat galeri…</h1>
+      <p id="clientSub" class="sub">Pilih foto sesuai kuota yang tersedia.</p>
+    </div>
+    <div id="clientNotice"></div>
+    <div class="toolbar">
+      <div id="selectionCounter" class="counter">Memuat foto…</div>
+      <div id="clientStatus"></div>
+    </div>
+    <div id="gallery" class="gallery"></div>
+    <div id="emptyGallery" class="empty hidden">Foto belum tersedia atau folder tidak dapat dibaca.</div>
+    <div class="sticky-submit" id="submitBar">
+      <div id="stickyCounter" class="counter">0 terpilih</div>
+      <button class="btn" id="submitBtn" onclick="submitSelection()">KIRIM PILIHAN</button>
+    </div>
+  </main>
+
+  <div id="previewModal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Preview foto" onclick="modalBackdrop(event)">
+    <div class="modal-inner">
+      <div class="modal-head"><div id="previewCode" class="modal-code"></div><button class="icon-btn" onclick="closePreview()" aria-label="Tutup preview">×</button></div>
+      <div class="modal-stage"><img id="previewImage" src="" alt="Preview foto"></div>
+      <div class="modal-foot">
+        <button class="icon-btn" onclick="movePreview(-1)" aria-label="Foto sebelumnya">‹</button>
+        <button id="previewSelectBtn" class="btn" onclick="toggleCurrentPhoto()">Pilih foto</button>
+        <button class="icon-btn" onclick="movePreview(1)" aria-label="Foto berikutnya">›</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const PROJECT_TOKEN = <?!= JSON.stringify(projectToken) ?>;
+    let adminKey = sessionStorage.getItem('inhistoriaAdminKey') || '';
+    let galleryData = null;
+    let selected = new Set();
+    let previewIndex = -1;
+    let projects = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (PROJECT_TOKEN) loadClientGallery();
+      else showAdmin();
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closePreview();
+        if (!document.getElementById('previewModal').classList.contains('hidden')) {
+          if (e.key === 'ArrowLeft') movePreview(-1);
+          if (e.key === 'ArrowRight') movePreview(1);
+        }
+      });
+    });
+
+    function showAdmin() {
+      document.getElementById('adminPage').classList.remove('hidden');
+      document.getElementById('clientPage').classList.add('hidden');
+      document.getElementById('headerRight').innerHTML = '<span class="footnote">ADMIN DASHBOARD</span>';
+      if (adminKey) {
+        document.getElementById('adminKey').value = adminKey;
+        loginAdmin();
+      }
+    }
+    function showClient() {
+      document.getElementById('clientPage').classList.remove('hidden');
+      document.getElementById('adminPage').classList.add('hidden');
+      document.getElementById('headerRight').innerHTML = '<span class="footnote">CLIENT GALLERY</span>';
+    }
+    function notice(id, message, type='') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.innerHTML = message ? '<div class="notice '+type+'">'+escapeHtml(message)+'</div>' : '';
+    }
+    function escapeHtml(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+    function callFailure(err, target) {
+      notice(target, err && err.message ? err.message : 'Terjadi kesalahan. Coba lagi.', 'error');
+    }
+
+    function loginAdmin() {
+      const key = document.getElementById('adminKey').value.trim();
+      if (!key) { notice('adminNotice','Masukkan ADMIN KEY terlebih dahulu.','error'); return; }
+      adminKey = key;
+      google.script.run.withSuccessHandler(data => {
+        sessionStorage.setItem('inhistoriaAdminKey', key);
+        document.getElementById('loginPanel').classList.add('hidden');
+        document.getElementById('adminWorkspace').classList.remove('hidden');
+        document.getElementById('headerRight').innerHTML = '<span class="footnote">ADMIN</span>';
+        renderProjects(data.projects || []);
+        notice('adminNotice','Dashboard berhasil dibuka.','success');
+      }).withFailureHandler(err => {
+        adminKey = '';
+        sessionStorage.removeItem('inhistoriaAdminKey');
+        callFailure(err, 'adminNotice');
+      }).adminGetData(key);
+    }
+    function logoutAdmin() {
+      adminKey = '';
+      sessionStorage.removeItem('inhistoriaAdminKey');
+      document.getElementById('adminWorkspace').classList.add('hidden');
+      document.getElementById('loginPanel').classList.remove('hidden');
+      document.getElementById('adminKey').value = '';
+      notice('adminNotice','Kamu sudah keluar dari dashboard.');
+    }
+    function refreshProjects() {
+      google.script.run.withSuccessHandler(data => renderProjects(data.projects || []))
+        .withFailureHandler(err => callFailure(err, 'adminNotice')).adminGetData(adminKey);
+    }
+    function createProject(event) {
+      event.preventDefault();
+      const btn = document.getElementById('createBtn');
+      btn.disabled = true; btn.textContent = 'Membuat project…';
+      notice('adminNotice','');
+      const payload = {
+        clientName: document.getElementById('clientName').value.trim(),
+        folderUrl: document.getElementById('folderUrl').value.trim(),
+        limit: Number(document.getElementById('limit').value)
+      };
+      google.script.run.withSuccessHandler(result => {
+        btn.disabled = false; btn.textContent = '+ Buat project gallery';
+        document.getElementById('createForm').reset();
+        document.getElementById('limit').value = 15;
+        document.getElementById('createResult').innerHTML =
+          '<div class="result-box"><strong>Project berhasil dibuat!</strong><br>'+
+          'Jumlah foto ditemukan: '+result.photoCount+'<br>Link klien:<br><a href="'+escapeHtml(result.url)+'" target="_blank" rel="noopener">'+escapeHtml(result.url)+'</a>'+
+          '<div class="form-actions"><button class="small-btn" onclick="copyText('+JSON.stringify(result.url)+')">Salin link klien</button><button class="small-btn" onclick="window.open('+JSON.stringify(result.url)+',\'_blank\')">Buka galeri</button></div></div>';
+        refreshProjects();
+      }).withFailureHandler(err => {
+        btn.disabled = false; btn.textContent = '+ Buat project gallery';
+        callFailure(err, 'adminNotice');
+      }).adminCreateProject(payload, adminKey);
+    }
+    function renderProjects(items) {
+      projects = items;
+      const list = document.getElementById('projectList');
+      if (!items.length) { list.innerHTML = '<div class="empty">Belum ada project. Buat proyek pertama di atas.</div>'; return; }
+      list.innerHTML = items.map(p => {
+        const url = new URL(window.location.href); url.search = ''; url.searchParams.set('p', p.token);
+        const selectedCodes = Array.isArray(p.selectedCodes) ? p.selectedCodes : [];
+        const submitted = p.status === 'Terkirim';
+        return '<div class="project"><div class="project-main"><div class="project-name">'+escapeHtml(p.clientName)+'</div>'+
+          '<div class="project-meta">'+Number(p.photoCount)+' foto di folder · Kuota '+Number(p.limit)+' · <strong>'+ (submitted ? 'Sudah dikirim' : 'Belum dikirim') +'</strong>'+
+          (submitted ? '<br>'+selectedCodes.length+' pilihan · '+escapeHtml(formatDate(p.submittedAt)) : '')+'</div>'+
+          (submitted ? '<div class="code-list">'+selectedCodes.map(c=>'<span class="code-chip">'+escapeHtml(c)+'</span>').join('')+'</div>' : '')+
+          '</div><div class="project-actions"><button class="small-btn" onclick="copyText('+JSON.stringify(url.toString())+')">Salin link</button>'+
+          '<button class="small-btn" onclick="window.open('+JSON.stringify(url.toString())+',\'_blank\')">Buka</button>'+
+          (submitted ? '<button class="small-btn" onclick="reopenProject('+JSON.stringify(p.token)+')">Buka ulang</button>' : '')+
+          (submitted && selectedCodes.length ? '<button class="small-btn" onclick="copyText('+JSON.stringify(selectedCodes.join('\\n'))+')">Salin kode</button>' : '')+
+          '</div></div>';
+      }).join('');
+    }
+    function reopenProject(token) {
+      if (!confirm('Buka ulang proyek ini agar klien bisa mengirim pilihan baru? Pilihan lama akan diganti saat pengiriman baru.')) return;
+      google.script.run.withSuccessHandler(() => { notice('adminNotice','Proyek dibuka ulang.','success'); refreshProjects(); })
+        .withFailureHandler(err => callFailure(err,'adminNotice')).adminReopenProject(token,adminKey);
+    }
+    async function copyText(text) {
+      try { await navigator.clipboard.writeText(text); alert('Berhasil disalin.'); }
+      catch (e) { prompt('Salin teks berikut:', text); }
+    }
+    function formatDate(value) {
+      if (!value) return '';
+      const d = new Date(value);
+      return isNaN(d) ? '' : d.toLocaleString('id-ID',{dateStyle:'medium',timeStyle:'short'});
+    }
+
+    function loadClientGallery() {
+      showClient();
+      google.script.run.withSuccessHandler(data => {
+        galleryData = data;
+        selected = new Set(Array.isArray(data.selectedCodes) ? data.selectedCodes : []);
+        document.getElementById('clientNameTitle').textContent = data.clientName;
+        document.getElementById('clientSub').textContent = 'Pilih maksimal '+data.limit+' foto. Ketuk foto untuk preview, lalu pilih foto dari tombol di preview atau lingkaran pada foto.';
+        renderGallery();
+        updateSelectionUI();
+        if (data.status === 'Terkirim') {
+          notice('clientNotice','Pilihan untuk proyek ini sudah dikirim pada '+formatDate(data.submittedAt)+'. Hubungi admin jika ingin mengubah pilihan.','success');
+          document.getElementById('submitBtn').disabled = true;
+          document.getElementById('submitBtn').textContent = 'PILIHAN TERKIRIM';
+        }
+      }).withFailureHandler(err => {
+        document.getElementById('clientNameTitle').textContent = 'Galeri tidak dapat dibuka';
+        notice('clientNotice', err && err.message ? err.message : 'Pastikan link benar dan coba lagi.','error');
+        document.getElementById('gallery').classList.add('hidden');
+        document.getElementById('submitBar').classList.add('hidden');
+      }).clientGetGallery(PROJECT_TOKEN);
+    }
+    function renderGallery() {
+      const gallery = document.getElementById('gallery');
+      const photos = galleryData.photos || [];
+      document.getElementById('emptyGallery').classList.toggle('hidden', photos.length > 0);
+      gallery.innerHTML = photos.map((p,i) =>
+        '<button type="button" class="photo '+(selected.has(p.code)?'selected':'')+'" aria-label="Preview '+escapeHtml(p.code)+'" onclick="openPreview('+i+')" data-index="'+i+'">'+
+        '<img loading="lazy" src="'+escapeHtml(p.thumbUrl)+'" alt="'+escapeHtml(p.code)+'" referrerpolicy="no-referrer" onerror="this.style.opacity=.18">'+
+        '<span class="select-dot">'+(selected.has(p.code)?'✓':'')+'</span><span class="code-label">'+escapeHtml(p.code)+'</span></button>'
+      ).join('');
+    }
+    function updateSelectionUI() {
+      if (!galleryData) return;
+      const count = selected.size, limit = galleryData.limit;
+      document.getElementById('selectionCounter').innerHTML = '<strong>'+count+'</strong> dari '+limit+' foto dipilih · Sisa '+Math.max(0,limit-count);
+      document.getElementById('stickyCounter').textContent = count+' / '+limit+' foto';
+      document.querySelectorAll('.photo').forEach((el,i) => {
+        const p = galleryData.photos[i]; if (!p) return;
+        el.classList.toggle('selected',selected.has(p.code));
+        const dot = el.querySelector('.select-dot'); if (dot) dot.textContent = selected.has(p.code)?'✓':'';
+      });
+      if (previewIndex >= 0) updatePreviewControls();
+    }
+    function togglePhoto(index) {
+      const photo = galleryData.photos[index];
+      if (!photo) return;
+      if (selected.has(photo.code)) selected.delete(photo.code);
+      else {
+        if (selected.size >= galleryData.limit) {
+          notice('clientNotice','Batas pilihan '+galleryData.limit+' foto sudah tercapai. Batalkan pilihan foto lain terlebih dahulu.','error');
+          return;
+        }
+        selected.add(photo.code); notice('clientNotice','');
+      }
+      updateSelectionUI();
+    }
+    function openPreview(index) {
+      previewIndex = index;
+      updatePreview();
+      document.getElementById('previewModal').classList.remove('hidden');
+      document.body.style.overflow='hidden';
+    }
+    function closePreview() {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.body.style.overflow='';
+      previewIndex=-1;
+    }
+    function modalBackdrop(event) { if (event.target.id === 'previewModal') closePreview(); }
+    function movePreview(direction) {
+      if (!galleryData || !galleryData.photos.length) return;
+      previewIndex = (previewIndex + direction + galleryData.photos.length) % galleryData.photos.length;
+      updatePreview();
+    }
+    function updatePreview() {
+      const p = galleryData.photos[previewIndex];
+      if (!p) return;
+      document.getElementById('previewCode').textContent = p.code;
+      document.getElementById('previewImage').src = p.previewUrl;
+      updatePreviewControls();
+    }
+    function updatePreviewControls() {
+      const p = galleryData.photos[previewIndex];
+      if (!p) return;
+      const btn = document.getElementById('previewSelectBtn');
+      btn.textContent = selected.has(p.code) ? 'Batalkan pilihan' : 'Pilih foto';
+      btn.disabled = !selected.has(p.code) && selected.size >= galleryData.limit;
+    }
+    function toggleCurrentPhoto() { if (previewIndex >= 0) togglePhoto(previewIndex); }
+    function submitSelection() {
+      if (!galleryData) return;
+      if (galleryData.status === 'Terkirim') return;
+      if (!confirm('Kirim '+selected.size+' pilihan foto sekarang? Setelah dikirim, pilihan tidak bisa diubah sendiri.')) return;
+      const btn = document.getElementById('submitBtn');
+      btn.disabled=true; btn.textContent='MENGIRIM…';
+      google.script.run.withSuccessHandler(result => {
+        galleryData.status = 'Terkirim';
+        galleryData.selectedCodes = result.selectedCodes;
+        notice('clientNotice','Pilihan berhasil dikirim! '+result.count+' kode foto sudah tersimpan.','success');
+        document.getElementById('clientStatus').textContent = 'Terkirim '+formatDate(result.submittedAt);
+        btn.textContent='PILIHAN TERKIRIM';
+        updateSelectionUI();
+      }).withFailureHandler(err => {
+        btn.disabled=false; btn.textContent='KIRIM PILIHAN';
+        callFailure(err,'clientNotice');
+      }).clientSubmitSelection(PROJECT_TOKEN, Array.from(selected));
+    }
+  </script>
+</body>
+</html>
